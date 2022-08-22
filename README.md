@@ -4,8 +4,8 @@
 
 部署下面的容器，配置容器环境变量，设置爱快地址和登录密码。
 
-```
-ccr.ccs.tencentyun.com/imoe-tech/go-playground:ikuai-exporter-v0.0.6-1-gbc5bcb 
+```shell
+docker pull jakes/ikuai-exporter:latest
 ```
 
 登录的帐号密码建议创建一个只读用户使用。
