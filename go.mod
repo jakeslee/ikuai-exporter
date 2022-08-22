@@ -3,6 +3,8 @@ module github.com/jakeslee/ikuai-exporter
 go 1.18
 
 require (
+	github.com/alexflint/go-arg v1.4.3 // indirect
+	github.com/alexflint/go-scalar v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/go-resty/resty/v2 v2.7.0 // indirect

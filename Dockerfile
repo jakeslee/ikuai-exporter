@@ -6,7 +6,8 @@ WORKDIR /go/src/exporter
 
 # 禁用 CGO，避免 so 问题
 ENV CGO_ENABLED=0
-RUN go build -v -o /go/src/bin/exporter main.go
+RUN flags="-X main.buildTime=`date -u '+%Y-%m-%d_%I:%M:%S%p'` -X main.version=`git describe --long --dirty --abbrev=6 --tags`" &&\
+    go build -ldflags "$flags" -v -o /go/src/bin/exporter main.go
 
 FROM ccr.ccs.tencentyun.com/imoe-tech/base-image:alpine-3.14.0-tz
 LABEL maintainers="Jakes Lee"
