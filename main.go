@@ -33,7 +33,7 @@ func main() {
 
 	http.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{Registry: registry}))
 
-	log.Printf("exporter v%v started at :9090", version)
+	log.Printf("exporter %v started at :9090", version)
 
 	log.Fatal(http.ListenAndServe(":9090", nil))
 }
