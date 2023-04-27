@@ -228,9 +228,7 @@ func (i *IKuaiExporter) interfaceMetrics(metrics chan<- prometheus.Metric, monit
 					ifaceUp = 0
 				} else {
 					updateTime, err := strconv.ParseInt(ifaceCheck.Updatetime, 10, 64)
-					if err != nil {
-						log.Printf("iface updatetime error, %v", err)
-					} else {
+					if err == nil {
 						ifaceUptime = time.Now().Unix() - updateTime
 					}
 				}
