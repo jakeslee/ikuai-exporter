@@ -129,7 +129,11 @@ func (i *IKuaiExporter) Collect(metrics chan<- prometheus.Metric) {
 		sysStat.Verinfo.Arch,
 		sysStat.Verinfo.Verstring)
 
-	metrics <- prometheus.MustNewConstMetric(i.cpuTempDesc, prometheus.GaugeValue, float64(sysStat.Cputemp[0]))
+	if len(sysStat.Cputemp) > 0 {
+		metrics <- prometheus.MustNewConstMetric(i.cpuTempDesc, prometheus.GaugeValue, float64(sysStat.Cputemp[0]))
+	} else {
+		log.Printf("sysStat.Cputemp is empty")
+	}
 
 	for idx, item := range sysStat.Cpu {
 		s := item[:len(item)-1]
@@ -149,32 +153,28 @@ func (i *IKuaiExporter) Collect(metrics chan<- prometheus.Metric) {
 
 	if isFail(&lanDevice.Result, err) {
 		log.Printf("ikuai ShowMonitorLan: %v, %+v", err, lanDevice.Result)
-		panic(lanDevice.Result)
-	}
+	} else {
+		for _, device := range lanDevice.Data.Data {
+			deviceId := fmt.Sprintf("device/%v", device.IPAddr)
 
-	ipToDevice := map[string]*action.LanDeviceInfo{}
+			metrics <- prometheus.MustNewConstMetric(i.lanDeviceDesc, prometheus.GaugeValue, 1,
+				deviceId, device.Mac, device.Hostname, device.IPAddr, device.Comment)
 
-	for _, device := range lanDevice.Data.Data {
-		deviceId := fmt.Sprintf("device/%v", device.IPAddr)
+			metrics <- prometheus.MustNewConstMetric(i.streamUpBytesDesc, prometheus.GaugeValue, float64(device.TotalUp),
+				deviceId)
 
-		ipToDevice[device.IPAddr] = &device
-		metrics <- prometheus.MustNewConstMetric(i.lanDeviceDesc, prometheus.GaugeValue, 1,
-			deviceId, device.Mac, device.Hostname, device.IPAddr, device.Comment)
+			metrics <- prometheus.MustNewConstMetric(i.streamDownBytesDesc, prometheus.GaugeValue, float64(device.TotalDown),
+				deviceId)
 
-		metrics <- prometheus.MustNewConstMetric(i.streamUpBytesDesc, prometheus.GaugeValue, float64(device.TotalUp),
-			deviceId)
+			metrics <- prometheus.MustNewConstMetric(i.streamUpSpeedDesc, prometheus.GaugeValue, float64(device.Upload),
+				deviceId)
 
-		metrics <- prometheus.MustNewConstMetric(i.streamDownBytesDesc, prometheus.GaugeValue, float64(device.TotalDown),
-			deviceId)
+			metrics <- prometheus.MustNewConstMetric(i.streamDownSpeedDesc, prometheus.GaugeValue, float64(device.Download),
+				deviceId)
 
-		metrics <- prometheus.MustNewConstMetric(i.streamUpSpeedDesc, prometheus.GaugeValue, float64(device.Upload),
-			deviceId)
-
-		metrics <- prometheus.MustNewConstMetric(i.streamDownSpeedDesc, prometheus.GaugeValue, float64(device.Download),
-			deviceId)
-
-		metrics <- prometheus.MustNewConstMetric(i.connCountDesc, prometheus.GaugeValue, float64(device.ConnectNum),
-			deviceId)
+			metrics <- prometheus.MustNewConstMetric(i.connCountDesc, prometheus.GaugeValue, float64(device.ConnectNum),
+				deviceId)
+		}
 	}
 
 	metrics <- prometheus.MustNewConstMetric(i.lanDeviceCountDesc, prometheus.GaugeValue, float64(sysStat.OnlineUser.Count))
@@ -183,9 +183,35 @@ func (i *IKuaiExporter) Collect(metrics chan<- prometheus.Metric) {
 
 	if isFail(&monitorInterface.Result, err) {
 		log.Printf("ikuai ShowMonitorInterface: %v, %+v", err, monitorInterface.Result)
-		panic(monitorInterface.Result)
+	} else {
+		i.interfaceMetrics(metrics, monitorInterface)
 	}
 
+	// Host metric
+	metrics <- prometheus.MustNewConstMetric(i.UpTimeDesc, prometheus.GaugeValue, float64(sysStat.Uptime),
+		"host")
+
+	metrics <- prometheus.MustNewConstMetric(i.streamUpBytesDesc, prometheus.GaugeValue, float64(sysStat.Stream.TotalUp),
+		"host")
+
+	metrics <- prometheus.MustNewConstMetric(i.streamDownBytesDesc, prometheus.GaugeValue, float64(sysStat.Stream.TotalDown),
+		"host")
+
+	metrics <- prometheus.MustNewConstMetric(i.streamUpSpeedDesc, prometheus.GaugeValue, float64(sysStat.Stream.Upload),
+		"host")
+
+	metrics <- prometheus.MustNewConstMetric(i.streamDownSpeedDesc, prometheus.GaugeValue, float64(sysStat.Stream.Download),
+		"host")
+
+	metrics <- prometheus.MustNewConstMetric(i.connCountDesc, prometheus.GaugeValue, float64(sysStat.Stream.ConnectNum),
+		"host")
+
+	// 无报错，up
+	metrics <- prometheus.MustNewConstMetric(i.UpDesc, prometheus.GaugeValue, 1,
+		"host")
+}
+
+func (i *IKuaiExporter) interfaceMetrics(metrics chan<- prometheus.Metric, monitorInterface *action.ShowMonitorInterfaceResult) {
 	for _, iface := range monitorInterface.Data.IfaceStream {
 		internet := ""
 		parentIface := ""
@@ -240,28 +266,6 @@ func (i *IKuaiExporter) Collect(metrics chan<- prometheus.Metric) {
 		metrics <- prometheus.MustNewConstMetric(i.connCountDesc, prometheus.GaugeValue, float64(ifaceConn),
 			ifaceId)
 	}
-
-	metrics <- prometheus.MustNewConstMetric(i.UpTimeDesc, prometheus.GaugeValue, float64(sysStat.Uptime),
-		"host")
-
-	metrics <- prometheus.MustNewConstMetric(i.streamUpBytesDesc, prometheus.GaugeValue, float64(sysStat.Stream.TotalUp),
-		"host")
-
-	metrics <- prometheus.MustNewConstMetric(i.streamDownBytesDesc, prometheus.GaugeValue, float64(sysStat.Stream.TotalDown),
-		"host")
-
-	metrics <- prometheus.MustNewConstMetric(i.streamUpSpeedDesc, prometheus.GaugeValue, float64(sysStat.Stream.Upload),
-		"host")
-
-	metrics <- prometheus.MustNewConstMetric(i.streamDownSpeedDesc, prometheus.GaugeValue, float64(sysStat.Stream.Download),
-		"host")
-
-	metrics <- prometheus.MustNewConstMetric(i.connCountDesc, prometheus.GaugeValue, float64(sysStat.Stream.ConnectNum),
-		"host")
-
-	// 无报错，up
-	metrics <- prometheus.MustNewConstMetric(i.UpDesc, prometheus.GaugeValue, 1,
-		"host")
 }
 
 func isFail(result *action.Result, err error) bool {

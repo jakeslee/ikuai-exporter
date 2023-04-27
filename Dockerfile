@@ -1,4 +1,4 @@
-FROM golang:1.18-stretch as builder
+FROM golang:1.20.3 as builder
 
 ADD . /go/src/exporter
 
