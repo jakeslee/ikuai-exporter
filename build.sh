@@ -16,12 +16,16 @@ for i in "arm64" "amd64" ; do
 done
 
 image=ccr.ccs.tencentyun.com/imoe-tech/go-playground:ikuai-exporter-"$version"
+official_img=jakes/ikuai-exporter:latest
+official_img_versioned=jakes/ikuai-exporter:"$version"
 echo "packaging docker multiplatform image: $image"
+echo "packaging docker multiplatform image: $official_img"
+echo "packaging docker multiplatform image: $official_img_versioned"
 
 docker buildx build --push \
   --platform linux/amd64,linux/arm64 \
   --build-arg VERSION="$version" \
-  -t "$image" .
+  -t "$image" -t "$official_img" -t "$official_img_versioned" .
 
 echo "finished: $image"
 
