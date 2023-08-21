@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/alexflint/go-arg v1.4.3
-	github.com/jakeslee/ikuai v0.0.0-20230629065628-e7fa8b40eab9
+	github.com/jakeslee/ikuai v0.0.0-20230821072811-3be6ef36f522
 	github.com/prometheus/client_golang v1.13.0
 )
 
@@ -18,8 +18,8 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
-	golang.org/x/net v0.11.0 // indirect
-	golang.org/x/sys v0.9.0 // indirect
+	golang.org/x/net v0.14.0 // indirect
+	golang.org/x/sys v0.11.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 )
 

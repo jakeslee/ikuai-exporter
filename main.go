@@ -15,6 +15,7 @@ type Config struct {
 	IkuaiUsername string `arg:"env:IK_USER" help:"iKuai username" default:"test"`
 	IkuaiPassword string `arg:"env:IK_PWD" help:"iKuai password" default:"test123"`
 	Debug         bool   `arg:"env:DEBUG" help:"iKuai 开启 debug 日志" default:"false"`
+	InsecureSkip  bool   `arg:"env:SKIP_TLS_VERIFY" help:"是否跳过 iKuai 证书验证" default:"true"`
 }
 
 var (
@@ -26,7 +27,7 @@ func main() {
 	config := &Config{}
 	arg.MustParse(config)
 
-	i := ikuai.NewIKuai(config.Ikuai, config.IkuaiUsername, config.IkuaiPassword)
+	i := ikuai.NewIKuai(config.Ikuai, config.IkuaiUsername, config.IkuaiPassword, config.InsecureSkip)
 
 	if config.Debug {
 		i.Debug()
