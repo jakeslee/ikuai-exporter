@@ -154,9 +154,17 @@ func (i *IKuaiExporter) Collect(metrics chan<- prometheus.Metric) {
 	if isFail(&lanDevice.Result, err) {
 		log.Printf("ikuai ShowMonitorLan: %v, %+v", err, lanDevice.Result)
 	} else {
+		devices := map[string]*action.LanDeviceInfo{}
+
 		for _, device := range lanDevice.Data.Data {
 			deviceId := fmt.Sprintf("device/%v", device.IPAddr)
 
+			if _, ok := devices[deviceId]; !ok {
+				devices[deviceId] = &device
+			}
+		}
+
+		for deviceId, device := range devices {
 			metrics <- prometheus.MustNewConstMetric(i.lanDeviceDesc, prometheus.GaugeValue, 1,
 				deviceId, device.Mac, device.Hostname, device.IPAddr, device.Comment)
 
