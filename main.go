@@ -11,7 +11,7 @@ import (
 )
 
 type Config struct {
-	Ikuai         string `arg:"env:IK_URL" help:"iKuai URL" default:"http://10.10.1.253"`
+	Ikuai         string `arg:"env:IK_URL" help:"iKuai URL" default:"http://10.0.1.253"`
 	IkuaiUsername string `arg:"env:IK_USER" help:"iKuai username" default:"test"`
 	IkuaiPassword string `arg:"env:IK_PWD" help:"iKuai password" default:"test123"`
 	Debug         bool   `arg:"env:DEBUG" help:"iKuai 开启 debug 日志" default:"false"`
