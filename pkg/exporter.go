@@ -109,12 +109,6 @@ func (i *IKuaiExporter) Collect(metrics chan<- prometheus.Metric) {
 		}
 	}()
 
-	_, err := i.ikuai.Login()
-	if err != nil {
-		log.Printf("ikuai login: %v", err)
-		return
-	}
-
 	stat, err := i.ikuai.ShowSysStat()
 
 	if isFail(&stat.Result, err) {

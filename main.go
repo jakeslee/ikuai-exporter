@@ -27,7 +27,7 @@ func main() {
 	config := &Config{}
 	arg.MustParse(config)
 
-	i := ikuai.NewIKuai(config.Ikuai, config.IkuaiUsername, config.IkuaiPassword, config.InsecureSkip)
+	i := ikuai.NewIKuai(config.Ikuai, config.IkuaiUsername, config.IkuaiPassword, config.InsecureSkip, true)
 
 	if config.Debug {
 		i.Debug()
