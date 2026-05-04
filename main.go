@@ -1,13 +1,15 @@
 package main
 
 import (
+	"log"
+	"net/http"
+	"strings"
+
 	"github.com/alexflint/go-arg"
 	"github.com/jakeslee/ikuai"
 	"github.com/jakeslee/ikuai-exporter/pkg"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"log"
-	"net/http"
 )
 
 type Config struct {
@@ -27,7 +29,7 @@ func main() {
 	config := &Config{}
 	arg.MustParse(config)
 
-	i := ikuai.NewIKuai(config.Ikuai, config.IkuaiUsername, config.IkuaiPassword, config.InsecureSkip, true)
+	i := ikuai.NewIKuai(strings.TrimSpace(config.Ikuai), config.IkuaiUsername, config.IkuaiPassword, config.InsecureSkip, true)
 
 	if config.Debug {
 		i.Debug()
