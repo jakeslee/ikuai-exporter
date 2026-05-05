@@ -15,6 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var opts = options.NewServerOptions()
@@ -65,4 +66,7 @@ func init() {
 	serverCmd.Flags().BoolVar(&opts.InsecureSkip, "insecure-skip", opts.InsecureSkip, "Skip iKuai certificate verification")
 	serverCmd.Flags().StringVarP(&opts.Level, "level", "l", opts.Level, "Log level")
 
+	viper.BindEnv("url", "IK_URL")
+	viper.BindEnv("username", "IK_USER")
+	viper.BindEnv("password", "IK_PWD")
 }
