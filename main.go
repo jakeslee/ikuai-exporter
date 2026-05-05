@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"strings"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/jakeslee/ikuai-exporter/pkg"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/sirupsen/logrus"
 )
 
 type Config struct {
@@ -33,6 +33,7 @@ func main() {
 
 	if config.Debug {
 		i.Debug()
+		logrus.SetLevel(logrus.DebugLevel)
 	}
 
 	registry := prometheus.NewRegistry()
@@ -41,7 +42,6 @@ func main() {
 
 	http.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{Registry: registry}))
 
-	log.Printf("exporter %v started at :9090", version)
-
-	log.Fatal(http.ListenAndServe(":9090", nil))
+	logrus.Infof("exporter %v started on :9090", version)
+	logrus.Fatal(http.ListenAndServe(":9090", nil))
 }

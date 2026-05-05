@@ -1,11 +1,16 @@
 package pkg
 
 import (
+	"errors"
 	"fmt"
+	"sync/atomic"
+
 	"github.com/jakeslee/ikuai"
 	"github.com/jakeslee/ikuai/action"
 	"github.com/prometheus/client_golang/prometheus"
-	"log"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
+
 	"strconv"
 	"time"
 )
@@ -37,6 +42,9 @@ type IKuaiExporter struct {
 	streamUpSpeedDesc   *prometheus.Desc // 流量上行速度
 	streamDownSpeedDesc *prometheus.Desc // 流量上行速度
 	connCountDesc       *prometheus.Desc // 连接数指标
+
+	// Exporter
+	MetricErrorDesc *prometheus.Desc // 指标获取报错
 }
 
 func NewIKuaiExporter(kuai *ikuai.IKuai) *IKuaiExporter {
@@ -76,6 +84,8 @@ func NewIKuaiExporter(kuai *ikuai.IKuai) *IKuaiExporter {
 			[]string{"id"}, nil),
 		connCountDesc: prometheus.NewDesc("ikuai_network_conn_count", "",
 			[]string{"id"}, nil),
+		MetricErrorDesc: prometheus.NewDesc("ikuai_exporter_metrics_errors_count", "",
+			[]string{"type"}, nil),
 	}
 }
 
@@ -97,23 +107,19 @@ func (i *IKuaiExporter) Describe(descs chan<- *prometheus.Desc) {
 	descs <- i.streamUpSpeedDesc
 	descs <- i.streamDownSpeedDesc
 	descs <- i.connCountDesc
+	descs <- i.MetricErrorDesc
 }
 
-func (i *IKuaiExporter) Collect(metrics chan<- prometheus.Metric) {
-	defer func() {
-		if err := recover(); err != nil {
-			log.Printf("collect ikuai panic, %v", err)
-
-			metrics <- prometheus.MustNewConstMetric(i.UpDesc, prometheus.GaugeValue, 0,
-				"host")
-		}
-	}()
-
+func (i *IKuaiExporter) CollectSysStat(metrics chan<- prometheus.Metric) error {
 	stat, err := i.ikuai.ShowSysStat()
-
-	if isFail(&stat.Result, err) {
-		log.Printf("ikuai ShowSysStat: %v, %+v", err, stat.Result)
-		panic(stat.Result)
+	if err != nil || !stat.Ok() {
+		logrus.WithFields(logrus.Fields{
+			"result": stat,
+		}).WithError(err).Error("failed to collect ikuai sysStat")
+		return &CollectError{
+			Err:  err,
+			Type: "sysStat",
+		}
 	}
 
 	sysStat := stat.Data.SysStat
@@ -126,7 +132,9 @@ func (i *IKuaiExporter) Collect(metrics chan<- prometheus.Metric) {
 	if len(sysStat.Cputemp) > 0 {
 		metrics <- prometheus.MustNewConstMetric(i.cpuTempDesc, prometheus.GaugeValue, float64(sysStat.Cputemp[0]))
 	} else {
-		log.Printf("sysStat.Cputemp is empty")
+		logrus.WithFields(logrus.Fields{
+			"sysStat.Cputemp": sysStat.Cputemp,
+		}).Debug("failed to collect ikuai cpu temp")
 	}
 
 	for idx, item := range sysStat.Cpu {
@@ -143,51 +151,7 @@ func (i *IKuaiExporter) Collect(metrics chan<- prometheus.Metric) {
 	metrics <- prometheus.MustNewConstMetric(i.memCachedDesc, prometheus.GaugeValue, float64(sysStat.Memory.Cached))
 	metrics <- prometheus.MustNewConstMetric(i.memBuffersDesc, prometheus.GaugeValue, float64(sysStat.Memory.Buffers))
 
-	lanDevice, err := i.ikuai.ShowMonitorLan()
-
-	if isFail(&lanDevice.Result, err) {
-		log.Printf("ikuai ShowMonitorLan: %v, %+v", err, lanDevice.Result)
-	} else {
-		devices := map[string]action.LanDeviceInfo{}
-
-		for _, device := range lanDevice.Data.Data {
-			deviceId := fmt.Sprintf("device/%v", device.IPAddr)
-
-			if _, ok := devices[deviceId]; !ok {
-				devices[deviceId] = device
-			}
-		}
-
-		for deviceId, device := range devices {
-			metrics <- prometheus.MustNewConstMetric(i.lanDeviceDesc, prometheus.GaugeValue, 1,
-				deviceId, device.Mac, device.Hostname, device.IPAddr, device.Comment)
-
-			metrics <- prometheus.MustNewConstMetric(i.streamUpBytesDesc, prometheus.GaugeValue, float64(device.TotalUp),
-				deviceId)
-
-			metrics <- prometheus.MustNewConstMetric(i.streamDownBytesDesc, prometheus.GaugeValue, float64(device.TotalDown),
-				deviceId)
-
-			metrics <- prometheus.MustNewConstMetric(i.streamUpSpeedDesc, prometheus.GaugeValue, float64(device.Upload),
-				deviceId)
-
-			metrics <- prometheus.MustNewConstMetric(i.streamDownSpeedDesc, prometheus.GaugeValue, float64(device.Download),
-				deviceId)
-
-			metrics <- prometheus.MustNewConstMetric(i.connCountDesc, prometheus.GaugeValue, float64(device.ConnectNum),
-				deviceId)
-		}
-	}
-
 	metrics <- prometheus.MustNewConstMetric(i.lanDeviceCountDesc, prometheus.GaugeValue, float64(sysStat.OnlineUser.Count))
-
-	monitorInterface, err := i.ikuai.ShowMonitorInterface()
-
-	if isFail(&monitorInterface.Result, err) {
-		log.Printf("ikuai ShowMonitorInterface: %v, %+v", err, monitorInterface.Result)
-	} else {
-		i.interfaceMetrics(metrics, monitorInterface)
-	}
 
 	// Host metric
 	metrics <- prometheus.MustNewConstMetric(i.UpTimeDesc, prometheus.GaugeValue, float64(sysStat.Uptime),
@@ -207,6 +171,139 @@ func (i *IKuaiExporter) Collect(metrics chan<- prometheus.Metric) {
 
 	metrics <- prometheus.MustNewConstMetric(i.connCountDesc, prometheus.GaugeValue, float64(sysStat.Stream.ConnectNum),
 		"host")
+
+	return nil
+}
+
+func (i *IKuaiExporter) CollectLanDevices(metrics chan<- prometheus.Metric) error {
+	devices := map[string]action.LanDeviceInfo{}
+	var errs []error
+
+	lanDevice, err := i.ikuai.ShowMonitorLan()
+	if err != nil || !lanDevice.Ok() {
+		logrus.WithFields(logrus.Fields{
+			"result": lanDevice,
+		}).WithError(err).Error("failed to collect ikuai lanDevice")
+
+		errs = append(errs, &CollectError{
+			Err:  err,
+			Type: "lanDevice",
+		})
+	} else {
+		for _, device := range lanDevice.Data.Data {
+			deviceId := fmt.Sprintf("device/%v", device.IPAddr)
+
+			if _, ok := devices[deviceId]; !ok {
+				devices[deviceId] = device
+			}
+		}
+	}
+
+	lanDeviceIPV6, err := i.ikuai.ShowMonitorLanIPv6()
+	if err != nil || !lanDevice.Ok() {
+		logrus.WithFields(logrus.Fields{
+			"result": lanDevice,
+		}).WithError(err).Error("failed to collect ikuai lanDeviceIPv6")
+
+		errs = append(errs, &CollectError{
+			Err:  err,
+			Type: "lanDeviceIPv6",
+		})
+	} else {
+		for _, device := range lanDeviceIPV6.Data.Data {
+			deviceId := fmt.Sprintf("device/%v", device.IPAddr)
+
+			if _, ok := devices[deviceId]; !ok {
+				devices[deviceId] = device
+			}
+		}
+	}
+
+	for deviceId, device := range devices {
+		metrics <- prometheus.MustNewConstMetric(i.lanDeviceDesc, prometheus.GaugeValue, 1,
+			deviceId, device.Mac, device.Hostname, device.IPAddr, device.Comment)
+
+		metrics <- prometheus.MustNewConstMetric(i.streamUpBytesDesc, prometheus.GaugeValue, device.TotalUp, deviceId)
+		metrics <- prometheus.MustNewConstMetric(i.streamDownBytesDesc, prometheus.GaugeValue, device.TotalDown, deviceId)
+		metrics <- prometheus.MustNewConstMetric(i.streamUpSpeedDesc, prometheus.GaugeValue, float64(device.Upload), deviceId)
+		metrics <- prometheus.MustNewConstMetric(i.streamDownSpeedDesc, prometheus.GaugeValue, float64(device.Download), deviceId)
+		metrics <- prometheus.MustNewConstMetric(i.connCountDesc, prometheus.GaugeValue, float64(device.ConnectNum), deviceId)
+	}
+
+	if len(errs) != 0 {
+		return &CollectError{
+			Err:  errors.Join(errs...),
+			Type: "lanDevice",
+		}
+	}
+
+	return nil
+}
+
+func (i *IKuaiExporter) CollectInterfaceInfo(metrics chan<- prometheus.Metric) error {
+	interfaceInfo, err := i.ikuai.ShowMonitorInterface()
+	if err != nil || !interfaceInfo.Ok() {
+		logrus.WithFields(logrus.Fields{
+			"result": interfaceInfo,
+		}).WithError(err).Error("failed to collect ikuai interfaceInfo")
+		return &CollectError{
+			Err:  err,
+			Type: "interfaceInfo",
+		}
+	}
+
+	i.interfaceMetrics(metrics, interfaceInfo)
+	return nil
+}
+
+func (i *IKuaiExporter) Collect(metrics chan<- prometheus.Metric) {
+	defer func() {
+		if errRecover := recover(); errRecover != nil {
+			logrus.WithField("err", errRecover).Error("collect ikuai panic")
+
+			metrics <- prometheus.MustNewConstMetric(i.UpDesc, prometheus.GaugeValue, 0,
+				"host")
+		}
+	}()
+
+	errCounter := &atomic.Int64{}
+	types := []string{
+		"sysStat",
+		"lanDevice",
+		"interfaceInfo",
+	}
+	eg := &errgroup.Group{}
+	for _, t := range types {
+		eg.Go(func() error {
+			var cErr error
+
+			switch t {
+			case "sysStat":
+				cErr = i.CollectSysStat(metrics)
+			case "lanDevice":
+				cErr = i.CollectLanDevices(metrics)
+			case "interfaceInfo":
+				cErr = i.CollectInterfaceInfo(metrics)
+			}
+
+			errStatus := 0
+			if cErr != nil {
+				errStatus = 1
+				errCounter.Add(1)
+			}
+
+			metrics <- prometheus.MustNewConstMetric(i.MetricErrorDesc, prometheus.GaugeValue, float64(errStatus), t)
+			return cErr
+		})
+	}
+
+	_ = eg.Wait()
+
+	if errCounter.Load() == int64(len(types)) {
+		metrics <- prometheus.MustNewConstMetric(i.UpDesc, prometheus.GaugeValue, 0,
+			"host")
+		return
+	}
 
 	// 无报错，up
 	metrics <- prometheus.MustNewConstMetric(i.UpDesc, prometheus.GaugeValue, 1,
@@ -240,37 +337,18 @@ func (i *IKuaiExporter) interfaceMetrics(metrics chan<- prometheus.Metric, monit
 		metrics <- prometheus.MustNewConstMetric(i.ifaceInfoDesc, prometheus.GaugeValue, 1,
 			ifaceId, iface.Interface, iface.Comment, internet, parentIface, iface.IPAddr)
 
-		metrics <- prometheus.MustNewConstMetric(i.UpDesc, prometheus.GaugeValue, float64(ifaceUp),
-			ifaceId)
-
-		metrics <- prometheus.MustNewConstMetric(i.UpTimeDesc, prometheus.GaugeValue, float64(ifaceUptime),
-			ifaceId)
-
-		metrics <- prometheus.MustNewConstMetric(i.streamUpBytesDesc, prometheus.GaugeValue, float64(iface.TotalUp),
-			ifaceId)
-
-		metrics <- prometheus.MustNewConstMetric(i.streamDownBytesDesc, prometheus.GaugeValue, float64(iface.TotalDown),
-			ifaceId)
-
-		metrics <- prometheus.MustNewConstMetric(i.streamUpSpeedDesc, prometheus.GaugeValue, float64(iface.Upload),
-			ifaceId)
-
-		metrics <- prometheus.MustNewConstMetric(i.streamDownSpeedDesc, prometheus.GaugeValue, float64(iface.Download),
-			ifaceId)
+		metrics <- prometheus.MustNewConstMetric(i.UpDesc, prometheus.GaugeValue, float64(ifaceUp), ifaceId)
+		metrics <- prometheus.MustNewConstMetric(i.UpTimeDesc, prometheus.GaugeValue, float64(ifaceUptime), ifaceId)
+		metrics <- prometheus.MustNewConstMetric(i.streamUpBytesDesc, prometheus.GaugeValue, float64(iface.TotalUp), ifaceId)
+		metrics <- prometheus.MustNewConstMetric(i.streamDownBytesDesc, prometheus.GaugeValue, float64(iface.TotalDown), ifaceId)
+		metrics <- prometheus.MustNewConstMetric(i.streamUpSpeedDesc, prometheus.GaugeValue, float64(iface.Upload), ifaceId)
+		metrics <- prometheus.MustNewConstMetric(i.streamDownSpeedDesc, prometheus.GaugeValue, float64(iface.Download), ifaceId)
 
 		ifaceConn, nErr := strconv.ParseInt(iface.ConnectNum, 10, 8)
 		if nErr != nil {
 			ifaceConn = 0
 		}
 
-		metrics <- prometheus.MustNewConstMetric(i.connCountDesc, prometheus.GaugeValue, float64(ifaceConn),
-			ifaceId)
+		metrics <- prometheus.MustNewConstMetric(i.connCountDesc, prometheus.GaugeValue, float64(ifaceConn), ifaceId)
 	}
-}
-
-func isFail(result *action.Result, err error) bool {
-	if err != nil || result.ErrMsg != "Success" {
-		return true
-	}
-	return false
 }
