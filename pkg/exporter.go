@@ -3,6 +3,7 @@ package pkg
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync/atomic"
 
 	"github.com/jakeslee/ikuai"
@@ -65,7 +66,7 @@ func NewIKuaiExporter(kuai *ikuai.IKuai) *IKuaiExporter {
 		memBuffersDesc: prometheus.NewDesc("ikuai_memory_buffers_bytes", "",
 			[]string{}, nil),
 		lanDeviceDesc: prometheus.NewDesc("ikuai_device_info", "ikuai_device_info",
-			[]string{"id", "mac", "hostname", "ip_addr", "comment"}, nil),
+			[]string{"id", "mac", "hostname", "ip_addr", "comment", "ip_version"}, nil),
 		lanDeviceCountDesc: prometheus.NewDesc("ikuai_device_count", "",
 			[]string{}, nil),
 		ifaceInfoDesc: prometheus.NewDesc("ikuai_iface_info", "",
@@ -220,8 +221,13 @@ func (i *IKuaiExporter) CollectLanDevices(metrics chan<- prometheus.Metric) erro
 	}
 
 	for deviceId, device := range devices {
+		ipVer := "4"
+		if strings.ContainsAny(device.IPAddr, ":") {
+			ipVer = "6"
+		}
+
 		metrics <- prometheus.MustNewConstMetric(i.lanDeviceDesc, prometheus.GaugeValue, 1,
-			deviceId, device.Mac, device.Hostname, device.IPAddr, device.Comment)
+			deviceId, device.Mac, device.Hostname, device.IPAddr, device.Comment, ipVer)
 
 		metrics <- prometheus.MustNewConstMetric(i.streamUpBytesDesc, prometheus.GaugeValue, device.TotalUp, deviceId)
 		metrics <- prometheus.MustNewConstMetric(i.streamDownBytesDesc, prometheus.GaugeValue, device.TotalDown, deviceId)
