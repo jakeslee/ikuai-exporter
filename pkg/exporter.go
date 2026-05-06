@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 
 	"github.com/jakeslee/ikuai"
+	"github.com/jakeslee/ikuai-exporter/pkg/utils"
 	"github.com/jakeslee/ikuai/action"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -183,7 +184,7 @@ func (i *IKuaiExporter) CollectLanDevices(metrics chan<- prometheus.Metric) erro
 	lanDevice, err := i.ikuai.ShowMonitorLan()
 	if err != nil || !lanDevice.Ok() {
 		logrus.WithFields(logrus.Fields{
-			"result": lanDevice,
+			"result": utils.ToJsonString(lanDevice),
 		}).WithError(err).Error("failed to collect ikuai lanDevice")
 
 		errs = append(errs, &CollectError{
@@ -201,9 +202,9 @@ func (i *IKuaiExporter) CollectLanDevices(metrics chan<- prometheus.Metric) erro
 	}
 
 	lanDeviceIPV6, err := i.ikuai.ShowMonitorLanIPv6()
-	if err != nil || !lanDevice.Ok() {
+	if err != nil || !lanDeviceIPV6.Ok() {
 		logrus.WithFields(logrus.Fields{
-			"result": lanDevice,
+			"result": utils.ToJsonString(lanDeviceIPV6),
 		}).WithError(err).Error("failed to collect ikuai lanDeviceIPv6")
 
 		errs = append(errs, &CollectError{
