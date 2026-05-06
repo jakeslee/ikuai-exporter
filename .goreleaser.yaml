@@ -1,0 +1,69 @@
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
+
+# The lines below are called `modelines`. See `:help modeline`
+# Feel free to remove those if you don't want/need to use them.
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 2
+
+before:
+  hooks:
+    # You may remove this if you don't use go modules.
+    - go mod tidy
+    # you may remove this if you don't need go generate
+    - go generate ./...
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    ldflags:
+      - -s -w -X github.com/jakeslee/ikuai-exporter/pkg/version.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+
+archives:
+  - formats: [tar.gz]
+    # this name template makes the OS and Arch compatible with the results of `uname`.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # use zip for windows archives
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+dockers_v2:
+  - id: ikuai-exporter
+    images:
+      - docker.io/jakes/ikuai-exporter
+      - "ghcr.io/jakeslee/{{ .ProjectName }}"
+    tags:
+      - latest
+      - "v{{ .Version }}"
+    disable: '{{ not (isEnvSet "GITHUB_TOKEN") }}'
+  - id: ikuai-exporter-test
+    images:
+      - ccr.ccs.tencentyun.com/imoe-tech/go-playground
+    tags:
+      - "ikuai-exporter-v{{ .Version }}"
+    disable: '{{ isEnvSet "GITHUB_TOKEN" }}'
+  - id: ikuai-exporter-dev
+    images:
+      - registry.imoe.tech/homelab/ikuai-exporter
+    tags:
+      - latest
+      - "v{{ .Version }}"
+    disable: '{{ isEnvSet "GITHUB_TOKEN" }}'
+
+changelog:
+  use: github
+
+release:
+  draft: true
+  prerelease: auto

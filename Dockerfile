@@ -3,7 +3,7 @@ LABEL maintainers="Jakes Lee"
 LABEL description="iKuai exporter"
 ARG TARGETPLATFORM
 
-COPY $TARGETPLATFORM/ikuai /app
+COPY $TARGETPLATFORM/ikuai-exporter /app
 
 EXPOSE 9090
 WORKDIR /data
