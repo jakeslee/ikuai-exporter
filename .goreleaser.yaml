@@ -69,4 +69,8 @@ changelog:
 
 release:
   draft: true
+  use_existing_draft: true
   prerelease: auto
+  mode: append
+  header: |
+    {{ .Env.HEADER }}

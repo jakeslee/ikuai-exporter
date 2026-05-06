@@ -44,3 +44,12 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEADER: |
+            ## Docker Image
+            Pull the image from GHCR:
+            ```bash
+            docker pull ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            # or
+            docker pull docker.io/jakes/ikuai-exporter:${{ github.ref_name }}
+            ```
+            View package details [here](https://github.com/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }}).
