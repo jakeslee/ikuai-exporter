@@ -8,6 +8,9 @@
 
 version: 2
 
+git:
+  tag_sort: -version:creatordate
+
 before:
   hooks:
     # You may remove this if you don't use go modules.
@@ -44,7 +47,7 @@ dockers_v2:
       - docker.io/jakes/ikuai-exporter
       - "ghcr.io/jakeslee/{{ .ProjectName }}"
     tags:
-      - latest
+      - "{{ if not .Prerelease }}latest{{ end }}"
       - "v{{ .Version }}"
     disable: '{{ not (isEnvSet "GITHUB_TOKEN") }}'
   - id: ikuai-exporter-test
@@ -57,7 +60,7 @@ dockers_v2:
     images:
       - registry.imoe.tech/homelab/ikuai-exporter
     tags:
-      - latest
+      - "{{ if not .Prerelease }}latest{{ end }}"
       - "v{{ .Version }}"
     disable: '{{ isEnvSet "GITHUB_TOKEN" }}'
 
