@@ -8,5 +8,4 @@ COPY $TARGETPLATFORM/ikuai-exporter /app
 EXPOSE 9090
 WORKDIR /data
 
-RUN chmod +x /app
 CMD ["/app", "server"]
