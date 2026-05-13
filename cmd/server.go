@@ -42,7 +42,7 @@ var serverCmd = &cobra.Command{
 
 		http.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{Registry: registry}))
 
-		logrus.Infof("exporter %v started on :9090", version.Version())
+		logrus.Infof("iKuai exporter %v started on :9090", version.Version())
 		logrus.Fatal(http.ListenAndServe(":9090", nil))
 		return nil
 	},

@@ -3,7 +3,7 @@ module github.com/jakeslee/ikuai-exporter
 go 1.26.2
 
 require (
-	github.com/jakeslee/ikuai v0.2.0
+	github.com/jakeslee/ikuai v0.2.2
 	github.com/prometheus/client_golang v1.23.2
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
