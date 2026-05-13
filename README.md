@@ -1,5 +1,5 @@
 # iKuai Exporter
-![GitHub Tag](https://img.shields.io/github/v/tag/jakeslee/ikuai-exporter?logo=github&label=release)
+![GitHub Release](https://img.shields.io/github/v/release/jakeslee/ikuai-exporter?include_prereleases)
 
 一个用于获取采集爱快路由的统计数据，并导出为 Prometheus 格式的 Exporter。
 
@@ -13,7 +13,28 @@ docker pull ghcr.io/jakeslee/ikuai-exporter:latest
 docker pull docker.io/jakes/ikuai-exporter:latest
 ```
 
-### 使用
+使用 docker-compose 部署：
+
+```yaml
+services:
+    ikuai-exporter:
+        image: ghcr.io/jakeslee/ikuai-exporter:latest
+        restart: always
+        environment:
+            IKUAI_URL: "http://10.0.1.253"
+            IKUAI_USERNAME: "test"
+            IKUAI_PASSWORD: "test123"
+        ports:
+            - "9090:9090"
+```
+
+部署完成后，访问 `http://IP:9090/metrics` 验证运行情况。
+
+接下来将 exporter 的采集地址 IP 配置到 Prometheus 的 `scrape_configs` 中就可开始使用。
+
+详细配置和 Grafana 配置示例可以参考使用[样例](https://blog.imoe.tech/2022/12/25/48-use-ikuai-exporter-to-gather-metrics/)，最新的演示 Dashboard 在[这里](https://github.com/jakeslee/ikuai-exporter/raw/refs/heads/master/examples/grafana-dashboard.json)。
+
+### 参数说明
 
 登录的帐号密码建议创建一个只读用户使用。
 
