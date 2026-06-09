@@ -3,7 +3,8 @@ module github.com/jakeslee/ikuai-exporter
 go 1.26.2
 
 require (
-	github.com/jakeslee/ikuai v0.2.2
+	github.com/jakeslee/ikuai v0.4.0
+	github.com/jakeslee/ikuai/v4 v4.0.0-20260609053445-36fb9b1cae3a
 	github.com/prometheus/client_golang v1.23.2
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
@@ -29,6 +30,10 @@ require (
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
+	github.com/tidwall/gjson v1.18.0 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.0 // indirect
+	github.com/tidwall/sjson v1.2.5 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/net v0.53.0 // indirect

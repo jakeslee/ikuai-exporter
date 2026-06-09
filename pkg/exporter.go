@@ -6,9 +6,9 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"github.com/jakeslee/ikuai"
 	"github.com/jakeslee/ikuai-exporter/pkg/utils"
-	"github.com/jakeslee/ikuai/action"
+	v4 "github.com/jakeslee/ikuai/v4"
+	action_v4 "github.com/jakeslee/ikuai/v4/action"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -18,7 +18,7 @@ import (
 )
 
 type IKuaiExporter struct {
-	ikuai       *ikuai.IKuai
+	ikuai       *v4.IKuaiV4
 	versionDesc *prometheus.Desc // ikuai 版本
 
 	// CPU
@@ -49,7 +49,7 @@ type IKuaiExporter struct {
 	MetricErrorDesc *prometheus.Desc // 指标获取报错
 }
 
-func NewIKuaiExporter(kuai *ikuai.IKuai) *IKuaiExporter {
+func NewIKuaiExporter(kuai *v4.IKuaiV4) *IKuaiExporter {
 	return &IKuaiExporter{
 		ikuai: kuai,
 		versionDesc: prometheus.NewDesc("ikuai_version", "IKuai version info",
@@ -124,7 +124,7 @@ func (i *IKuaiExporter) CollectSysStat(metrics chan<- prometheus.Metric) error {
 		}
 	}
 
-	sysStat := stat.Data.SysStat
+	sysStat := stat.Results.SysStat
 
 	metrics <- prometheus.MustNewConstMetric(i.versionDesc, prometheus.GaugeValue, 1,
 		sysStat.Verinfo.Version,
@@ -178,7 +178,7 @@ func (i *IKuaiExporter) CollectSysStat(metrics chan<- prometheus.Metric) error {
 }
 
 func (i *IKuaiExporter) CollectLanDevices(metrics chan<- prometheus.Metric) error {
-	devices := map[string]action.LanDeviceInfo{}
+	devices := map[string]action_v4.LanDeviceInfo{}
 	var errs []error
 
 	lanDevice, err := i.ikuai.ShowMonitorLan()
@@ -192,7 +192,7 @@ func (i *IKuaiExporter) CollectLanDevices(metrics chan<- prometheus.Metric) erro
 			Type: "lanDevice",
 		})
 	} else {
-		for _, device := range lanDevice.Data.Data {
+		for _, device := range lanDevice.Results.Data {
 			deviceId := fmt.Sprintf("device/%v", device.IPAddr)
 
 			if _, ok := devices[deviceId]; !ok {
@@ -212,7 +212,7 @@ func (i *IKuaiExporter) CollectLanDevices(metrics chan<- prometheus.Metric) erro
 			Type: "lanDeviceIPv6",
 		})
 	} else {
-		for _, device := range lanDeviceIPV6.Data.Data {
+		for _, device := range lanDeviceIPV6.Results.Data {
 			deviceId := fmt.Sprintf("device/%v", device.IPAddr)
 
 			if _, ok := devices[deviceId]; !ok {
@@ -228,7 +228,7 @@ func (i *IKuaiExporter) CollectLanDevices(metrics chan<- prometheus.Metric) erro
 		}
 
 		metrics <- prometheus.MustNewConstMetric(i.lanDeviceDesc, prometheus.GaugeValue, 1,
-			deviceId, device.Mac, device.Hostname, device.IPAddr, device.Comment, ipVer)
+			deviceId, device.MAC, device.Hostname, device.IPAddr, device.Comment, ipVer)
 
 		metrics <- prometheus.MustNewConstMetric(i.streamUpBytesDesc, prometheus.GaugeValue, device.TotalUp, deviceId)
 		metrics <- prometheus.MustNewConstMetric(i.streamDownBytesDesc, prometheus.GaugeValue, device.TotalDown, deviceId)
@@ -317,15 +317,15 @@ func (i *IKuaiExporter) Collect(metrics chan<- prometheus.Metric) {
 		"host")
 }
 
-func (i *IKuaiExporter) interfaceMetrics(metrics chan<- prometheus.Metric, monitorInterface *action.ShowMonitorInterfaceResult) {
-	for _, iface := range monitorInterface.Data.IfaceStream {
+func (i *IKuaiExporter) interfaceMetrics(metrics chan<- prometheus.Metric, monitorInterface *action_v4.ShowMonitorInterfaceResult) {
+	for _, iface := range monitorInterface.Results.IfaceStream {
 		internet := ""
 		parentIface := ""
 		ifaceUp := 1
 		ifaceId := fmt.Sprintf("iface/%v", iface.Interface)
 		ifaceUptime := int64(0)
 
-		for _, ifaceCheck := range monitorInterface.Data.IfaceCheck {
+		for _, ifaceCheck := range monitorInterface.Results.IfaceCheck {
 			if ifaceCheck.Interface == iface.Interface {
 				internet = ifaceCheck.Internet
 				parentIface = ifaceCheck.ParentInterface

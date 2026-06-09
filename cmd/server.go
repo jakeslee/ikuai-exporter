@@ -31,7 +31,7 @@ var serverCmd = &cobra.Command{
 		}
 		logrus.SetLevel(level)
 
-		i := ikuai.NewIKuai(strings.TrimSpace(opts.URL), opts.Username, opts.Password, opts.InsecureSkip, true)
+		i := ikuai.NewV4(strings.TrimSpace(opts.URL), opts.Username, opts.Password, opts.InsecureSkip, true)
 
 		if level >= logrus.DebugLevel {
 			i.Debug()
