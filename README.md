@@ -47,20 +47,28 @@ services:
 登录的帐号密码建议创建一个只读用户使用。
 
 ```bash
-# ikuai-exporter server -h
 Run metrics endpoint
 
 Usage:
-  ikuai-exporter server [flags]
+i kuai-exporter server [flags]
 
 Flags:
-  -h, --help              help for server
-      --insecure-skip     Skip iKuai certificate verification (default true)
-  -l, --level string      Log level (default "info")
-  -p, --password string   The password for the user on iKuai (default "test123")
-      --url string        iKuai URL (default "http://10.0.1.253")
-  -u, --username string   iKuai username (default "test")
+    -h, --help                  help for server
+        --insecure-skip         Skip iKuai certificate verification (default true)
+    -l, --level string          Log level (default "info")
+        --modules stringArray   The modules to be collected. (default [sysStat,lanDevice,interfaceInfo])
+    -p, --password string       The password for the user on iKuai (default "test123")
+        --timeout int           The timeout (seconds) for a request to iKuai API.  (default 2)
+        --url string            iKuai URL (default "http://10.0.1.253")
+    -u, --username string       iKuai username (default "test")
+
 ```
+
+| 变量名           | 说明           | 默认值 |
+|:------------ |:-------------|:----- |
+| modules      | 采集模块         | sysStat,lanDevice,interfaceInfo |
+| insecure-skip | 跳过证书验证       | true |
+| timeout      | 请求超时时间（单位：秒） | 2 |
 
 从 v0.2.1 开始，可以使用环境变量来设置上面的参数，格式为 `IKUAI_XXX`，如 `IKUAI_URL=http://10.0.1.253` 或 `IKUAI_USERNAME=test`。
 

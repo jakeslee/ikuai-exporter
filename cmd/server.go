@@ -66,7 +66,8 @@ func init() {
 	serverCmd.Flags().StringVarP(&opts.Username, "username", "u", opts.Username, "iKuai username")
 	serverCmd.Flags().StringVarP(&opts.Password, "password", "p", opts.Password, "The password for the user on iKuai")
 	serverCmd.Flags().BoolVar(&opts.InsecureSkip, "insecure-skip", opts.InsecureSkip, "Skip iKuai certificate verification")
-	serverCmd.Flags().IntVar(&opts.Timeout, "timeout", opts.Timeout, "The timeout for a request to iKuai API. Default: 2(seconds).")
+	serverCmd.Flags().IntVar(&opts.Timeout, "timeout", opts.Timeout, "The timeout (seconds) for a request to iKuai API. ")
+	serverCmd.Flags().StringArrayVar(&opts.Modules, "modules", opts.Modules, "The modules to be collected.")
 	serverCmd.Flags().StringVarP(&opts.Level, "level", "l", opts.Level, "Log level")
 
 	viper.BindEnv("url", "IK_URL")
