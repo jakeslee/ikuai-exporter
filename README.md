@@ -56,7 +56,7 @@ Flags:
     -h, --help                  help for server
         --insecure-skip         Skip iKuai certificate verification (default true)
     -l, --level string          Log level (default "info")
-        --modules stringArray   The modules to be collected. (default [sysStat,lanDevice,interfaceInfo])
+        --modules strings       The modules to be collected. (default [sysStat,lanDevice,interfaceInfo])
     -p, --password string       The password for the user on iKuai (default "test123")
         --timeout int           The timeout (seconds) for a request to iKuai API.  (default 2)
         --url string            iKuai URL (default "http://10.0.1.253")

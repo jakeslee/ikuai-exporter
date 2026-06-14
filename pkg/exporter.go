@@ -56,7 +56,7 @@ type IKuaiExporter struct {
 }
 
 func NewIKuaiExporter(kuai *v4.IKuaiV4, modules []string) *IKuaiExporter {
-	usedModules := lo.Union(modules, supported_modules)
+	usedModules := lo.Intersect(modules, supported_modules)
 
 	if len(usedModules) == 0 {
 		usedModules = supported_modules
