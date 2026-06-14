@@ -3,18 +3,15 @@ package pkg
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
-	"sync/atomic"
+	"time"
 
 	"github.com/jakeslee/ikuai-exporter/pkg/utils"
 	v4 "github.com/jakeslee/ikuai/v4"
 	action_v4 "github.com/jakeslee/ikuai/v4/action"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
-
-	"strconv"
-	"time"
 )
 
 type IKuaiExporter struct {
@@ -86,7 +83,7 @@ func NewIKuaiExporter(kuai *v4.IKuaiV4) *IKuaiExporter {
 			[]string{"id"}, nil),
 		connCountDesc: prometheus.NewDesc("ikuai_network_conn_count", "",
 			[]string{"id"}, nil),
-		MetricErrorDesc: prometheus.NewDesc("ikuai_exporter_metrics_errors_count", "",
+		MetricErrorDesc: prometheus.NewDesc("ikuai_exporter_metrics_collector_status", "",
 			[]string{"type"}, nil),
 	}
 }
@@ -156,13 +153,13 @@ func (i *IKuaiExporter) CollectSysStat(metrics chan<- prometheus.Metric) error {
 	metrics <- prometheus.MustNewConstMetric(i.lanDeviceCountDesc, prometheus.GaugeValue, float64(sysStat.OnlineUser.Count))
 
 	// Host metric
-	metrics <- prometheus.MustNewConstMetric(i.UpTimeDesc, prometheus.GaugeValue, float64(sysStat.Uptime),
+	metrics <- prometheus.MustNewConstMetric(i.UpTimeDesc, prometheus.CounterValue, float64(sysStat.Uptime),
 		"host")
 
-	metrics <- prometheus.MustNewConstMetric(i.streamUpBytesDesc, prometheus.GaugeValue, float64(sysStat.Stream.TotalUp),
+	metrics <- prometheus.MustNewConstMetric(i.streamUpBytesDesc, prometheus.CounterValue, float64(sysStat.Stream.TotalUp),
 		"host")
 
-	metrics <- prometheus.MustNewConstMetric(i.streamDownBytesDesc, prometheus.GaugeValue, float64(sysStat.Stream.TotalDown),
+	metrics <- prometheus.MustNewConstMetric(i.streamDownBytesDesc, prometheus.CounterValue, float64(sysStat.Stream.TotalDown),
 		"host")
 
 	metrics <- prometheus.MustNewConstMetric(i.streamUpSpeedDesc, prometheus.GaugeValue, float64(sysStat.Stream.Upload),
@@ -230,8 +227,8 @@ func (i *IKuaiExporter) CollectLanDevices(metrics chan<- prometheus.Metric) erro
 		metrics <- prometheus.MustNewConstMetric(i.lanDeviceDesc, prometheus.GaugeValue, 1,
 			deviceId, device.MAC, device.Hostname, device.IPAddr, device.Comment, ipVer)
 
-		metrics <- prometheus.MustNewConstMetric(i.streamUpBytesDesc, prometheus.GaugeValue, device.TotalUp, deviceId)
-		metrics <- prometheus.MustNewConstMetric(i.streamDownBytesDesc, prometheus.GaugeValue, device.TotalDown, deviceId)
+		metrics <- prometheus.MustNewConstMetric(i.streamUpBytesDesc, prometheus.CounterValue, device.TotalUp, deviceId)
+		metrics <- prometheus.MustNewConstMetric(i.streamDownBytesDesc, prometheus.CounterValue, device.TotalDown, deviceId)
 		metrics <- prometheus.MustNewConstMetric(i.streamUpSpeedDesc, prometheus.GaugeValue, float64(device.Upload), deviceId)
 		metrics <- prometheus.MustNewConstMetric(i.streamDownSpeedDesc, prometheus.GaugeValue, float64(device.Download), deviceId)
 		metrics <- prometheus.MustNewConstMetric(i.connCountDesc, prometheus.GaugeValue, float64(device.ConnectNum), deviceId)
@@ -338,9 +335,9 @@ func (i *IKuaiExporter) interfaceMetrics(metrics chan<- prometheus.Metric, monit
 			ifaceId, iface.Interface, iface.Comment, internet, parentIface, iface.IPAddr)
 
 		metrics <- prometheus.MustNewConstMetric(i.UpDesc, prometheus.GaugeValue, float64(ifaceUp), ifaceId)
-		metrics <- prometheus.MustNewConstMetric(i.UpTimeDesc, prometheus.GaugeValue, float64(ifaceUptime), ifaceId)
-		metrics <- prometheus.MustNewConstMetric(i.streamUpBytesDesc, prometheus.GaugeValue, float64(iface.TotalUp), ifaceId)
-		metrics <- prometheus.MustNewConstMetric(i.streamDownBytesDesc, prometheus.GaugeValue, float64(iface.TotalDown), ifaceId)
+		metrics <- prometheus.MustNewConstMetric(i.UpTimeDesc, prometheus.CounterValue, float64(ifaceUptime), ifaceId)
+		metrics <- prometheus.MustNewConstMetric(i.streamUpBytesDesc, prometheus.CounterValue, float64(iface.TotalUp), ifaceId)
+		metrics <- prometheus.MustNewConstMetric(i.streamDownBytesDesc, prometheus.CounterValue, float64(iface.TotalDown), ifaceId)
 		metrics <- prometheus.MustNewConstMetric(i.streamUpSpeedDesc, prometheus.GaugeValue, float64(iface.Upload), ifaceId)
 		metrics <- prometheus.MustNewConstMetric(i.streamDownSpeedDesc, prometheus.GaugeValue, float64(iface.Download), ifaceId)
 
