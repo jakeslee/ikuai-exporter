@@ -8,6 +8,7 @@ type ServerOptions struct {
 	Password     string `json:"password"`
 	Level        string `json:"level"`
 	InsecureSkip bool   `json:"insecureSkip"`
+	Timeout      int    `json:"timeout"`
 }
 
 func NewServerOptions() *ServerOptions {
@@ -17,5 +18,6 @@ func NewServerOptions() *ServerOptions {
 		Password:     "test123",
 		Level:        logrus.InfoLevel.String(),
 		InsecureSkip: true,
+		Timeout:      2,
 	}
 }

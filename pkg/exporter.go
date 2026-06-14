@@ -273,48 +273,41 @@ func (i *IKuaiExporter) Collect(metrics chan<- prometheus.Metric) {
 		}
 	}()
 
-	errCounter := &atomic.Int64{}
+	errCounter := 0
 	types := []string{
 		"sysStat",
 		"lanDevice",
 		"interfaceInfo",
 	}
-	eg := &errgroup.Group{}
+
 	for _, t := range types {
-		eg.Go(func() error {
-			var cErr error
+		var cErr error
 
-			switch t {
-			case "sysStat":
-				cErr = i.CollectSysStat(metrics)
-			case "lanDevice":
-				cErr = i.CollectLanDevices(metrics)
-			case "interfaceInfo":
-				cErr = i.CollectInterfaceInfo(metrics)
-			}
+		switch t {
+		case "sysStat":
+			cErr = i.CollectSysStat(metrics)
+		case "lanDevice":
+			cErr = i.CollectLanDevices(metrics)
+		case "interfaceInfo":
+			cErr = i.CollectInterfaceInfo(metrics)
+		}
 
-			errStatus := 0
-			if cErr != nil {
-				errStatus = 1
-				errCounter.Add(1)
-			}
+		errStatus := 0
+		if cErr != nil {
+			errStatus = 1
+			errCounter++
+		}
 
-			metrics <- prometheus.MustNewConstMetric(i.MetricErrorDesc, prometheus.GaugeValue, float64(errStatus), t)
-			return cErr
-		})
+		metrics <- prometheus.MustNewConstMetric(i.MetricErrorDesc, prometheus.GaugeValue, float64(errStatus), t)
 	}
 
-	_ = eg.Wait()
-
-	if errCounter.Load() == int64(len(types)) {
-		metrics <- prometheus.MustNewConstMetric(i.UpDesc, prometheus.GaugeValue, 0,
-			"host")
+	// 所有类型都采集失败才标定 host 为 down
+	if errCounter == len(types) {
+		metrics <- prometheus.MustNewConstMetric(i.UpDesc, prometheus.GaugeValue, 0, "host")
 		return
 	}
 
-	// 无报错，up
-	metrics <- prometheus.MustNewConstMetric(i.UpDesc, prometheus.GaugeValue, 1,
-		"host")
+	metrics <- prometheus.MustNewConstMetric(i.UpDesc, prometheus.GaugeValue, 1, "host")
 }
 
 func (i *IKuaiExporter) interfaceMetrics(metrics chan<- prometheus.Metric, monitorInterface *action_v4.ShowMonitorInterfaceResult) {
