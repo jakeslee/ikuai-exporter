@@ -40,7 +40,7 @@ var serverCmd = &cobra.Command{
 		i.SetTimeout(time.Duration(opts.Timeout) * time.Second)
 
 		registry := prometheus.NewRegistry()
-		registry.MustRegister(pkg.NewIKuaiExporter(i))
+		registry.MustRegister(pkg.NewIKuaiExporter(i, opts.Modules))
 
 		http.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{Registry: registry}))
 

@@ -11,11 +11,20 @@ import (
 	v4 "github.com/jakeslee/ikuai/v4"
 	action_v4 "github.com/jakeslee/ikuai/v4/action"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
+var supported_modules = []string{
+	"sysStat",
+	"lanDevice",
+	"interfaceInfo",
+}
+
 type IKuaiExporter struct {
-	ikuai       *v4.IKuaiV4
+	ikuai   *v4.IKuaiV4
+	modules []string
+
 	versionDesc *prometheus.Desc // ikuai 版本
 
 	// CPU
@@ -46,9 +55,22 @@ type IKuaiExporter struct {
 	MetricErrorDesc *prometheus.Desc // 指标获取报错
 }
 
-func NewIKuaiExporter(kuai *v4.IKuaiV4) *IKuaiExporter {
+func NewIKuaiExporter(kuai *v4.IKuaiV4, modules []string) *IKuaiExporter {
+	usedModules := lo.Union(modules, supported_modules)
+
+	if len(usedModules) == 0 {
+		usedModules = supported_modules
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"supported":  strings.Join(supported_modules, ","),
+		"configured": strings.Join(modules, ","),
+		"used":       strings.Join(usedModules, ","),
+	}).Info("init exporter modules")
+
 	return &IKuaiExporter{
-		ikuai: kuai,
+		ikuai:   kuai,
+		modules: usedModules,
 		versionDesc: prometheus.NewDesc("ikuai_version", "IKuai version info",
 			[]string{"version", "arch", "verstring"}, nil),
 		cpuUsageRatioDesc: prometheus.NewDesc("ikuai_cpu_usage_ratio", "IKuai CPU usage ratio",
@@ -271,13 +293,8 @@ func (i *IKuaiExporter) Collect(metrics chan<- prometheus.Metric) {
 	}()
 
 	errCounter := 0
-	types := []string{
-		"sysStat",
-		"lanDevice",
-		"interfaceInfo",
-	}
 
-	for _, t := range types {
+	for _, t := range i.modules {
 		var cErr error
 
 		switch t {
@@ -299,7 +316,7 @@ func (i *IKuaiExporter) Collect(metrics chan<- prometheus.Metric) {
 	}
 
 	// 所有类型都采集失败才标定 host 为 down
-	if errCounter == len(types) {
+	if errCounter == len(i.modules) {
 		metrics <- prometheus.MustNewConstMetric(i.UpDesc, prometheus.GaugeValue, 0, "host")
 		return
 	}

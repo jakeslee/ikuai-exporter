@@ -19,6 +19,7 @@ github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/jakeslee/ikuai v0.4.0 h1:sxT5RF/4tzXCXIM79hut8rWc153YfmBrj6dX3sCtzXc=
 github.com/jakeslee/ikuai v0.4.0/go.mod h1:JlWAu4YHAcGEzG7vBp+wqhfPmkOTRNT8DMyYoItnLQM=
+github.com/jakeslee/ikuai v0.4.1/go.mod h1:JlWAu4YHAcGEzG7vBp+wqhfPmkOTRNT8DMyYoItnLQM=
 github.com/jakeslee/ikuai/v4 v4.0.0-20260609053445-36fb9b1cae3a h1:C80uTr5NgMJiHxl0QgxSf3EDYDBYQbfbKJTTZ8eIRHQ=
 github.com/jakeslee/ikuai/v4 v4.0.0-20260609053445-36fb9b1cae3a/go.mod h1:nh9X4gv6W8VhRrLTtPFLC1JowvtxuOOxM8kHLYMun7U=
 github.com/klauspost/compress v1.18.0 h1:c/Cqfb0r+Yi+JtIEq73FWXVkRonBlf0CRNYc8Zttxdo=
@@ -48,6 +49,8 @@ github.com/rogpeppe/go-internal v1.10.0/go.mod h1:UQnix2H7Ngw/k4C5ijL5+65zddjncj
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/sagikazarmark/locafero v0.11.0 h1:1iurJgmM9G3PA/I+wWYIOw/5SyBtxapeHDcg+AAIFXc=
 github.com/sagikazarmark/locafero v0.11.0/go.mod h1:nVIGvgyzw595SUSUE6tvCp3YYTeHs15MvlmU87WwIik=
+github.com/samber/lo v1.53.0 h1:t975lj2py4kJPQ6haz1QMgtId2gtmfktACxIXArw3HM=
+github.com/samber/lo v1.53.0/go.mod h1:4+MXEGsJzbKGaUEQFKBq2xtfuznW9oz/WrgyzMzRoM0=
 github.com/sirupsen/logrus v1.9.4 h1:TsZE7l11zFCLZnZ+teH4Umoq5BhEIfIzfRDZ1Uzql2w=
 github.com/sirupsen/logrus v1.9.4/go.mod h1:ftWc9WdOfJ0a92nsE2jF5u5ZwH8Bv2zdeOC42RjbV2g=
 github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 h1:+jumHNA0Wrelhe64i8F6HNlS8pkoyMv5sreGx2Ry5Rw=
